@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>I love you &lt;3</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+canvas{display:block;width:100vw;height:100vh;background:#000}
+#play{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:9px 16px;border:1px solid rgba(80,180,255,.45);border-radius:20px;background:rgba(0,20,40,.7);color:#dff7ff;font:14px Arial;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<audio id="music" src="love_you.mp3" loop preload="auto"></audio>
+<button id="play">▶ Play music</button>
+<script>
+const c=document.getElementById("c"),ctx=c.getContext("2d",{alpha:false});
+const music=document.getElementById("music"),btn=document.getElementById("play");
+let W,H,D,particles=[],start=performance.now();
+const words=["love you","Love You","LOVE YOU"];
+const colors=["#4682b4","#1e90ff","#00bfff","#6495ed","#4169e1"];
+function heart(t){return{x:16*Math.sin(t)**3,y:13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)}}
+function resize(){
+ D=Math.min(devicePixelRatio||1,2); W=innerWidth; H=innerHeight;
+ c.width=W*D;c.height=H*D;ctx.setTransform(D,0,0,D,0,0);makeParticles();
+}
+addEventListener("resize",resize);
+function makeParticles(){
+ particles=[];
+ const count=W<600?250:Math.min(430,Math.max(300,Math.floor(W*H/3000)));
+ const scale=Math.min(W,H)*.022;
+ for(let i=0;i<count;i++){
+  const t=Math.random()*Math.PI*2,p=heart(t);
+  const fill=i%3===0?1:.12+Math.random()*.78;
+  particles.push({x:W/2+p.x*scale*fill,y:H/2-p.y*scale*fill,delay:Math.random()*3600,
+  size:W<600?7:8+Math.random()*4,a:.4+Math.random()*.6,phase:Math.random()*6.28,
+  word:words[(Math.random()*3)|0],color:colors[(Math.random()*5)|0]});
+ }
+ start=performance.now();
+}
+const cache=new Map();
+function sprite(word,size,color){
+ const key=word+"|"+size+"|"+color;let s=cache.get(key);if(s)return s;
+ const q=document.createElement("canvas"),g=q.getContext("2d");
+ g.font="bold "+size+"px Arial";const m=g.measureText(word),pad=12;
+ q.width=Math.ceil(m.width)+pad*2;q.height=Math.ceil(size*1.7)+pad*2;
+ g.font="bold "+size+"px Arial";g.textAlign="center";g.textBaseline="middle";
+ g.fillStyle=color;g.globalAlpha=.22;g.fillText(word,q.width/2,q.height/2);
+ g.globalAlpha=1;g.fillText(word,q.width/2,q.height/2);
+ cache.set(key,q);return q;
+}
+function frame(now){
+ ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+ const elapsed=now-start;
+ for(const p of particles){
+  const t=elapsed-p.delay;if(t<0)continue;
+  const appear=Math.min(1,t/350),pulse=.78+.22*Math.sin(now*.002+p.phase);
+  const s=sprite(p.word,p.size,p.color);
+  ctx.globalAlpha=p.a*appear*pulse;ctx.drawImage(s,p.x-s.width/2,p.y-s.height/2);
+ }
+ const fade=Math.max(0,Math.min(1,(elapsed-3800)/800));
+ if(fade>0){
+  const pulse=1+.055*Math.sin(now*.003),size=Math.max(22,Math.min(W,H)*.065)*pulse;
+  ctx.globalAlpha=fade;ctx.font="bold "+size+"px Arial";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.shadowColor="rgba(80,190,255,.9)";ctx.shadowBlur=16;ctx.fillStyle="#7ddcff";ctx.fillText("Love You",W/2,H/2);ctx.shadowBlur=0;
+ }
+ ctx.globalAlpha=1;requestAnimationFrame(frame);
+}
+btn.onclick=async()=>{try{if(music.paused){await music.play();btn.textContent="⏸ Pause music"}else{music.pause();btn.textContent="▶ Play music"}}catch(e){btn.textContent="Music unavailable"}};
+resize();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
